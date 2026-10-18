@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111318" />
+    <title>WebEmacs</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">W</span><span>WebEmacs</span><span class="version">0.1</span></div>
+        <nav class="menu"><button id="new-file">New</button><button id="open-file">Open</button><button id="save-file">Save</button></nav>
+        <div class="top-actions"><span class="connection-dot"></span><span id="connection-label">연결 확인 중</span></div>
+      </header>
+      <main class="workspace">
+        <aside class="sidebar">
+          <div class="side-heading"><span>WORKSPACE</span><button id="refresh-files" title="새로고침">↻</button></div>
+          <div id="file-list" class="file-list"><div class="empty">파일 목록을 불러오는 중…</div></div>
+          <div class="sidebar-footer"><span class="tiny-dot"></span> Local workspace</div>
+        </aside>
+        <section class="editor-pane">
+          <div class="tabbar"><div class="tab active"><span class="file-icon">▤</span><span id="tab-name">scratch.txt</span><span class="unsaved" id="unsaved-indicator"></span></div><div class="tab-spacer"></div><button class="icon-button" id="toggle-sidebar" title="사이드바 표시/숨김">◧</button></div>
+          <div id="editor-host" class="editor-host"></div>
+          <div class="command-row"><span class="command-symbol">:</span><input id="command-input" aria-label="명령 입력" placeholder="명령 입력 (예: w, q, e notes.txt, help)" autocomplete="off" /><span class="command-hint">Enter</span></div>
+          <div id="message" class="message" role="status">WebEmacs 준비 완료 · Vim 키맵</div>
+        </section>
+      </main>
+      <footer class="statusbar"><div class="status-left"><span id="mode-label">NORMAL</span><span id="file-status">scratch.txt</span></div><div class="status-right"><span>UTF-8</span><span>한글 IME</span><span id="cursor-status">Ln 1, Col 1</span></div></footer>
+      <input type="file" id="browser-file-input" hidden />
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
