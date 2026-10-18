@@ -45,6 +45,70 @@ const editor = new EditorView({
 });
 $('editor-host').append(editor.dom);
 
+/**
+ * Korean IME → Vim physical-key adapter
+ * NORMAL 모드에서만 물리 키를 영문 Vim 키로 전달
+ */
+const vimKeyAdapter = (event: KeyboardEvent) => {
+  const cm = getCM(editor);
+
+  // Vim INSERT 모드에서는 한글 입력을 그대로 유지
+  if (!cm || cm.state.vim.insertMode) return;
+
+  // 편집기에 포커스가 없으면 처리하지 않음
+  if (!editor.hasFocus) return;
+
+  // Ctrl, Alt, Meta 단축키는 그대로 유지
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+  // 영문 입력이면 기존 Vim 키맵이 처리
+  if (/^[a-zA-Z]$/.test(event.key) && !event.isComposing) {
+    return;
+  }
+
+  // 물리 키 위치에서 영문 문자 추출
+  const match = /^Key([A-Z])$/.exec(event.code);
+  if (!match) return;
+
+  // 실제 IME 조합이 진행 중이면 강제 종료하지 않음
+  if (event.isComposing || editor.composing) return;
+
+  const key = event.shiftKey
+    ? match[1]
+    : match[1].toLowerCase();
+
+  // Vim 키맵에 영문 키 이벤트 전달
+  const replacement = new KeyboardEvent('keydown', {
+    key,
+    code: event.code,
+    bubbles: true,
+    cancelable: true,
+    shiftKey: event.shiftKey
+  });
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  editor.contentDOM.dispatchEvent(replacement);
+};
+
+// CodeMirror보다 먼저 키 이벤트를 검사
+editor.contentDOM.addEventListener(
+  'keydown',
+  vimKeyAdapter,
+  true
+);
+
+// 여기부터 추가
+editor.contentDOM.addEventListener('keydown', (event) => {
+  console.log('[KEY]', {
+    key: event.key,
+    code: event.code,
+    composing: event.isComposing,
+    vimInsert: getCM(editor)?.state.vim.insertMode
+  });
+}, true);
+// 여기까지 추가
+
 function notify(text: string, isError = false) {
   message.textContent = text;
   message.classList.toggle('error', isError);
@@ -151,11 +215,41 @@ commandInput.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { commandInput.value = ''; editor.focus(); }
 });
 document.addEventListener('keydown', (event) => {
-  if (event.key === ':' && document.activeElement !== commandInput && !(document.activeElement instanceof HTMLInputElement)) {
-    event.preventDefault(); commandInput.focus(); commandInput.value = ':'; commandInput.setSelectionRange(1, 1);
+  const target = event.target as HTMLElement | null;
+
+  // Ctrl+S / Cmd+S 저장
+  if (
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === 's'
+  ) {
+    event.preventDefault();
+    void saveFile();
+    return;
   }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-    event.preventDefault(); void saveFile();
+
+  // CodeMirror 내부 키 입력은 Vim이 처리
+  if (target?.closest('.cm-editor')) {
+    return;
+  }
+
+  // 한글 조합 중에는 단축키 처리 금지
+  if (event.isComposing || event.key === 'Process') {
+    return;
+  }
+
+  // 다른 입력창에서는 명령창 단축키 비활성화
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement
+  ) {
+    return;
+  }
+
+  if (event.key === ':' && !editor.hasFocus) {
+  event.preventDefault();
+  commandInput.focus();
+  commandInput.value = ':';
+  commandInput.setSelectionRange(1, 1);
   }
 });
 
